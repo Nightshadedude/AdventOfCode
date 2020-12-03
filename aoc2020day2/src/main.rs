@@ -1,8 +1,8 @@
 use std::fs;
 
 pub struct Policy {
-    min: u16,
-    max: u16,
+    pos1: u16,
+    pos2: u16,
     ch: char,
     pass: String,
 }
@@ -12,17 +12,18 @@ impl Policy {
         let partial_parse = unparsed.split_whitespace().collect::<Vec<&str>>();
         let temp = partial_parse[0].split("-").collect::<Vec<&str>>();
         Policy {
-            min: temp[0].parse::<u16>().unwrap_or(0),
-            max: temp[1].parse::<u16>().unwrap_or(0),
+            pos1: temp[0].parse::<u16>().unwrap_or(0),
+            pos2: temp[1].parse::<u16>().unwrap_or(0),
             ch: partial_parse[1].chars().next().unwrap_or(' '),
             pass: String::from(partial_parse[2]),
         }
     }
 
     fn is_valid(&self) -> bool {
-        let count = self.pass.matches(self.ch).count() as u16;
-        let rng = self.min..=self.max;
-        return rng.contains(&count);
+        let p1 = self.pass.chars().nth(self.pos1 as usize-1).unwrap_or(' ') == self.ch;
+        let p2 = self.pass.chars().nth(self.pos2 as usize-1).unwrap_or(' ') == self.ch;
+
+        return p1 ^ p2;
     }
 }
 
