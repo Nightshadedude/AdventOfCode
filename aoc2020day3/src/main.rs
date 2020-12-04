@@ -42,13 +42,23 @@ impl Slope {
 fn main() {
     let filename = "input";
     let contents = fs::read_to_string(filename).expect("failed to read");
-    let slope = Slope::new(
+    let mut slope = Slope::new(
         contents
             .split_terminator('\n')
             .map(|s| String::from(s))
             .collect::<Vec<String>>(),
-        3usize,
+        1usize,
         1usize,
     );
-    println!("{}", slope.calc_impact());
+    let mut total: u32 = slope.calc_impact() as u32;
+    slope.right = 3usize;
+    total *= slope.calc_impact() as u32;
+    slope.right = 5usize;
+    total *= slope.calc_impact() as u32;
+    slope.right = 7usize;
+    total *= slope.calc_impact() as u32;
+    slope.right = 1usize;
+    slope.down = 2usize;
+    total *= slope.calc_impact() as u32;
+    println!("{}", total);
 }
