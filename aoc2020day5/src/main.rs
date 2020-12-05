@@ -43,13 +43,13 @@ impl BoardingPass {
             }
             _ => {}
         });
-//        match code.chars().nth(code.chars().count() - 1).unwrap_or(' ') {
-//            'F' => lower_range,
-//            'L' => lower_range,
-//            'B' => upper_range,
-//            'R' => upper_range,
-//            _ => 0,
-//        }
+        //        match code.chars().nth(code.chars().count() - 1).unwrap_or(' ') {
+        //            'F' => lower_range,
+        //            'L' => lower_range,
+        //            'B' => upper_range,
+        //            'R' => upper_range,
+        //            _ => 0,
+        //        }
         lower_range
     }
 
@@ -65,9 +65,14 @@ impl BoardingPass {
 fn main() {
     let filename = "input";
     let contents = fs::read_to_string(filename).expect("failed to read");
-    let passes = contents
+    let mut passes = contents
         .split_terminator("\n")
         .map(|s| BoardingPass::new(s).calc_seat())
         .collect::<Vec<u16>>();
-    println!("{:#?}", passes.iter().max().unwrap_or(&0));
+    passes.sort();
+    for window in passes.windows(2) {
+        if window[1] - window[0] != 1 {
+            println!("{:#?}", window[1] - 1);
+        };
+    }
 }
