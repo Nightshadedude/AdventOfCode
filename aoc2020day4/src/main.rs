@@ -51,17 +51,89 @@ impl Passport {
     }
 
     pub fn is_valid(&self) -> u16 {
-        if self.birth.chars().count() > 0usize &&
-            self.issue.chars().count() > 0usize &&
-            self.expiry.chars().count() > 0usize &&
-            self.height.chars().count() > 0usize &&
-            self.hair.chars().count() > 0usize &&
-            self.eye.chars().count() > 0usize &&
-            self.pass_id.chars().count() > 0usize {
-                return 1u16;
-            } else {
-                return 0u16;
-            }
+        let birth = match self.birth.parse::<u16>() {
+            Ok(i) => {
+                if i >= 1920 && i <=2002 { true }
+                else { false }
+            },
+            Err(_) => { false },
+        };
+
+        let issue = match self.issue.parse::<u16>() {
+            Ok(i) => {
+                if i >= 2010 && i <=2020 { true }
+                else { false }
+            },
+            Err(_) => { false },
+        };
+
+        let expiry = match self.expiry.parse::<u16>() {
+            Ok(i) => {
+                if i >= 2020 && i <=2030 { true }
+                else { false }
+            },
+            Err(_) => { false },
+        };
+
+        let mut digit = self.height.clone();
+        let inch_check = digit.find("in").unwrap_or(digit.len());
+        let inch = digit.split_off(inch_check);
+        let cm_check = digit.find("cm").unwrap_or(digit.len());
+        let cm = digit.split_off(cm_check);
+        let height = match digit.parse::<u16>() {
+            Ok(i) if inch == "in".to_string() => {
+                match i {
+                    59..=76 => true,
+                    _ => false,
+                }
+            },
+            Ok(i) if cm == "cm".to_string() => {
+                 match i {
+                     150..=193 => true,
+                     _ => false,
+                 }
+            },
+            _ => false,
+        };
+
+        
+        let hair = match self.hair.chars().count() {
+            7 => {
+                match self.hair.chars().nth(0).unwrap() {
+                    '#' => {
+                        match i64::from_str_radix(self.hair.trim_start_matches('#'), 16) {
+                            Ok(i) if i <= 16777215 => { true },
+                            _ => false,
+                        }
+                    },
+                    _ => false,
+                }
+            },
+            _ => false,
+        };
+
+        let eye = match self.eye.as_str() {
+            "amb" => true,
+            "blu" => true,
+            "brn" => true,
+            "gry" => true,
+            "grn" => true,
+            "hzl" => true,
+            "oth" => true,
+            _ => false,
+        };
+
+        let pass_id = match self.pass_id.chars().count() {
+            9 => {
+                match self.pass_id.parse::<u32>() {
+                    Ok(_) => true,
+                    Err (_) => false,
+                }
+            },
+            _ => false,
+        };
+
+        (birth && issue && expiry && height && hair && eye && pass_id ) as u16
     }
 }
 
