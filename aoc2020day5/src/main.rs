@@ -26,30 +26,31 @@ impl BoardingPass {
         let mut upper_range = upper;
         code.chars().for_each(|c| match c {
             'F' => {
-                let delta = (lower_range + upper_range + 1) / 2;
-                upper_range = delta;
+                let delta = (upper_range - lower_range) / 2;
+                upper_range = lower_range + delta;
             }
             'L' => {
-                let delta = (lower_range + upper_range + 1) / 2;
-                upper_range = delta;
+                let delta = (upper_range - lower_range) / 2;
+                upper_range = lower_range + delta;
             }
             'B' => {
-                let delta = (lower_range + upper_range + 1) / 2;
-                lower_range = delta;
+                let delta = (upper_range - lower_range) / 2;
+                lower_range = upper_range - delta;
             }
             'R' => {
-                let delta = (lower_range + upper_range + 1) / 2;
-                lower_range = delta;
+                let delta = (upper_range - lower_range) / 2;
+                lower_range = upper_range - delta;
             }
             _ => {}
         });
-        match code.chars().nth(code.chars().count() - 1).unwrap_or(' ') {
-            'F' => lower_range,
-            'L' => lower_range,
-            'B' => upper_range,
-            'R' => upper_range,
-            _ => 0,
-        }
+//        match code.chars().nth(code.chars().count() - 1).unwrap_or(' ') {
+//            'F' => lower_range,
+//            'L' => lower_range,
+//            'B' => upper_range,
+//            'R' => upper_range,
+//            _ => 0,
+//        }
+        lower_range
     }
 
     fn calc_col(code: &str) -> u16 {
