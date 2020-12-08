@@ -72,7 +72,7 @@ fn main() {
     passes.sort();
     for window in passes.windows(2) {
         if window[1] - window[0] != 1 {
-            println!("{:#?}", window[1] - 1);
+            println!("{}", window[1] - 1);
         };
     }
 }
