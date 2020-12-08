@@ -1,5 +1,4 @@
-use std::fs;
-use std::collections::HashSet;
+use std::{collections::HashMap, fs};
 
 struct Group {
     answers: String
@@ -13,9 +12,16 @@ impl Group {
     }
 
     pub fn count(&self) -> usize {
-        let mut temp = HashSet::new();
-        self.answers.split_terminator("\n").for_each(|a| a.chars().for_each(|c| {temp.insert(c);}));
-        temp.len()
+        let num_answers = self.answers.split_terminator("\n").collect::<Vec<&str>>().len();
+        let mut count = HashMap::new();
+        self.answers.chars().for_each(|c| {count.insert(c, self.answers.matches(c).count());});
+        count.remove(&'\n');
+        let mut total = 0usize;
+        for (_,v) in &count {
+            if *v == num_answers { total += 1; }
+        }
+//        println!("str: {}\nhashmap: {:#?}\nnum: {}\ntotal: {}\n\n", self.answers, &count, num_answers, total);
+        total
     }
 }
 fn main() {
