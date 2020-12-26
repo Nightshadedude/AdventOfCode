@@ -1,7 +1,12 @@
+use indextree::Arena;
 use std::fs;
+use std::collections::HashSet;
+
 struct Bag{
+//    parent: Option<Box<Bag>,
     adj: String,
     color: String,
+//    children: Option<Vec<Box<Bag>>>,
 }
 
 impl Bag {
@@ -52,50 +57,31 @@ fn parse_bag(s: &str) -> (Bag, Option<Vec<Bag>>) {
     }
 }
 
-//blows the stack.  ooops
-fn find_to_bag(to_search: &Vec<(Bag, Option<Vec<Bag>>)>, to_find: &Bag, mut start: usize) -> usize {
-    let mut found = false;
-    let len = to_search.len();
-    let mut current = 0;
-    while !found && current < len {
-        let check = to_search[current].0.bag_check(to_find);
-        if check {
-            start += 1;
-            found = true;
-        } else {
-            match &to_search[current].1 {
-                None => (),
-                Some(bags) => {
-                    for c_bag in bags {
-                        if c_bag.bag_check(to_find) {
-                            start += find_to_bag(to_search, c_bag, start);
-                        }
-                    }
-                },
-            }
-        }
-        current += 1;
-    }
-    start
-}
-
 
 fn main() {
     let filename = "input";
     let contents = fs::read_to_string(filename).expect("failed to read");
     let line_of_data = contents.split_terminator("\n").collect::<Vec<&str>>();
-    let mut bags: Vec<(Bag, Option<Vec<Bag>>)> = vec![];
+    let mut bags: HashSet<(Bag, Option<Vec<Bag>>)> = HashSet::new();
     for line in line_of_data {
         println!("Parsing: {}", line);
-        bags.push(parse_bag(line));
+        bags.insert(parse_bag(line));
     }
-    
-    let to_find = Bag {
-        adj: "shiny".to_string(),
-        color: "gold".to_string(),
-    };
 
-    let total = find_to_bag(&bags, &to_find, 0);
+    let arena = &mut Arena::new();
 
-    println!("{}", total);
+    for b in bags {
+        let p_node = arena.new_node(b.0);
+        match b.1 {
+            Some(c_bag) => {
+                for cb in c_bag { 
+                    p_node.append(arena.new_node(cb), arena);
+                }
+            },
+            None => {
+                println!("Parent node is empty");
+            },
+        }
+    }
+    println!("{:#?}", arena);
 }
