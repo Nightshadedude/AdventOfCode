@@ -37,34 +37,48 @@ fn main() {
     let mut ops = contents.split_terminator("\n")
         .map(|s| Operation::new(s))
         .collect::<Vec<Operation>>(); 
-    let mut acc = 0;
-    let mut pos = 0i32;
-    loop {
-        println!("ACC: {}, POS: {}", acc, pos);
-        match ops.iter_mut().nth(pos as usize) {
-            Some(op) => match op.oc {
-                OpCode::Jmp if !op.consumed => {
-                    pos += op.val;
-                    op.consumed = true;
+    let mut last_checked = 0i32;
+    while ops.iter().nth(last_checked as usize).is_some() {
+        match ops.iter_mut().nth(last_checked as usize).unwrap().oc {
+            OpCode::Jmp => ops.iter_mut().nth(last_checked as usize).unwrap().oc = OpCode::Nop,
+            OpCode::Nop => ops.iter_mut().nth(last_checked as usize).unwrap().oc = OpCode::Jmp,
+            _ => (),
+        };
+        let mut pos = 0i32;
+        let mut acc = 0;
+        loop {
+            match ops.iter_mut().nth(pos as usize) {
+                Some(op) => match op.oc {
+                    OpCode::Jmp if !op.consumed => {
+                        pos += op.val;
+                        op.consumed = true;
+                    },
+                    OpCode::Acc if !op.consumed => {
+                        acc += op.val;
+                        pos += 1;
+                        op.consumed = true;
+                    },
+                    OpCode::Nop if !op.consumed => {
+                        pos += 1;
+                        op.consumed = true;
+                    },
+                    _ => {
+                        break;
+                    },
                 },
-                OpCode::Acc if !op.consumed => {
-                    acc += op.val;
-                    pos += 1;
-                    op.consumed = true;
-                },
-                OpCode::Nop if !op.consumed => {
-                    pos += 1;
-                    op.consumed = true;
-                },
-                _ => {
-                    println!("Acc: {}", acc);
+                None => {
+                    println!("successful exit: {}, acc {}", pos, acc);
                     break;
                 },
-            },
-            None => {
-                println!("POS: {} - error", pos);
-                break;
-            },
-        }
+            }
+        };
+
+        match ops.iter_mut().nth(last_checked as usize).unwrap().oc {
+            OpCode::Jmp => ops.iter_mut().nth(last_checked as usize).unwrap().oc = OpCode::Nop,
+            OpCode::Nop => ops.iter_mut().nth(last_checked as usize).unwrap().oc = OpCode::Jmp,
+            _ => (),
+        };
+        last_checked += 1;
+        ops.iter_mut().for_each(|op| op.consumed = false);
     }
 } 
