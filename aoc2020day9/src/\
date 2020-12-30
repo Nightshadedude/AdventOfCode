@@ -1,0 +1,14 @@
+use std::fs;
+
+const PREAMBLE_LENGTH: u64 = 5;
+
+struct EncodedMessage {
+    preamble: Vec<u64>,
+    payload: Vec<u64>,
+}
+
+fn main() {
+    let filename = "input";
+    let contents = fs::read_to_string(filename).expect("failed to read");
+
+} 
