@@ -3,20 +3,14 @@ use std::fs;
 #[derive(Debug, PartialEq)]
 struct SeatMap{
     layout: Vec<Vec<char>>,
-    //next_layout: Vec<Vec<char>>,
 }
 
 impl SeatMap{
     fn new(string: String) -> SeatMap {
-        let mut spl = string.split_terminator("\n").collect::<Vec<&str>>();
+        let spl = string.split_terminator("\n").collect::<Vec<&str>>();
         let mut layout = vec![];
-        let blank = (0..spl[0].len()).map(|_| ".").collect::<String>();
-        spl.insert(0, &blank);
-        spl.push(&blank);
         for row in spl.iter() {
-            let mut temp = row.chars().collect::<Vec<char>>();
-            temp.insert(0, '.');
-            temp.push('.');
+            let temp = row.chars().collect::<Vec<char>>();
             layout.push(temp);
         }
 
@@ -24,6 +18,47 @@ impl SeatMap{
             layout,
         }
     }
+
+    fn check_dirs(&self,
+                x: usize,
+                y: usize,
+                distance_check: Option<usize>) ->
+        u16 {
+            let mut count = 0;
+            let dirs = vec![(-1,-1), (-1,0), (-1,1),
+                            (0,-1),/*(0,0),*/(0,1),
+                            (1,-1), (1,0), (1,1)];
+            for (x_shift, y_shift) in dirs {
+                let mut x_check = x as i16 + x_shift;
+                let mut y_check = y as i16 + y_shift;
+                let mut found = false;
+                let max_dist = match distance_check {
+                    Some(x) => x,
+                    None => self.layout.len(),
+                };
+                let mut curr_dist = 0;
+                while 0 <= x_check && x_check < self.layout.len() as i16 &&
+                    0 <= y_check && y_check < self.layout[0].len() as i16 &&
+                    !found && curr_dist < max_dist {
+                        match self.layout[x_check as usize][y_check as usize]{
+                            '#' => {
+                                count += 1;
+                                found = true;
+                            },
+                            'L'=> {
+                                found = true;
+                            },
+                            _ => {
+                                x_check += x_shift;
+                                y_check += y_shift;
+                            },
+                        }
+                        curr_dist += 1;
+                    }
+            }
+            count
+        }
+
 
     fn validate_seats(&mut self) {
         let x_max = self.layout.len();
@@ -35,20 +70,7 @@ impl SeatMap{
                 let seat = self.layout[x][y];
                 match seat {
                     'L' => {
-                        let mut temp = 0;
-                        for x_offset in 0..=2 {
-                            for y_offset in 0..=2 {
-                                if x_offset == 1 && y_offset == 1 {}
-                                else {
-                                    match self
-                                        .layout[x+x_offset-1][y + y_offset-1]
-                                        {
-                                            '#' => {temp += 1;},
-                                            _ => (),
-                                        }
-                                }
-                            }
-                        }
+                        let temp = self.check_dirs(x, y, None);
                         if temp > 0 {
                             row.push('L');
                         }
@@ -57,21 +79,8 @@ impl SeatMap{
                         }
                     },
                     '#' => {
-                        let mut temp = 0;
-                        for x_offset in 0..=2 {
-                            for y_offset in 0..=2 {
-                                if x_offset == 1 && y_offset == 1 {}
-                                else {
-                                    match self
-                                        .layout[x+x_offset-1][y + y_offset-1]
-                                        {
-                                            '#' => {temp += 1;},
-                                            _ => (),
-                                        }
-                                }
-                            }
-                        }
-                        if temp >= 4 {
+                        let temp = self.check_dirs(x, y, None);
+                        if temp >= 5 {
                             row.push('L');
                         }
                         else {
