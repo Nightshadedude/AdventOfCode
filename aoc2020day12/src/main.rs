@@ -1,105 +1,198 @@
 use std::fs;
 
-/*
- * N: 1
- * E: 1
- * S: -1
- * W: -1
- */
-
-struct Pathing<'a> {
-     steps: Vec<(&'a str, i16)>,
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Instruction {
+    Move(Direction, isize),
+    Rotate(AngleDelta),
+    Forward(isize),
 }
 
-struct Gps<'a> {
-    facing: &'a str,
-    x: i16,
-    y: i16,
+fn parse_instructions(input: &str) -> impl Iterator<Item = Instruction> + '_ {
+    input.lines().map(|line| {
+        let command = line.as_bytes()[0];
+        let number: isize = (&line[1..]).parse().unwrap();
+
+        match command {
+            b'N' => Instruction::Move(Direction::North, number),
+            b'S' => Instruction::Move(Direction::South, number),
+            b'E' => Instruction::Move(Direction::East, number),
+            b'W' => Instruction::Move(Direction::West, number),
+            b'L' => Instruction::Rotate(AngleDelta(-number / 90)),
+            b'R' => Instruction::Rotate(AngleDelta(number / 90)),
+            b'F' => Instruction::Forward(number),
+            c => panic!("unknown instruction {}", c as char),
+        }
+    })
 }
 
-impl<'a> Pathing<'a> {
-    fn new(s: &'a str) -> Self {
-        let spl: Vec<&str> = s.split_terminator("\n").collect();
-        let mut steps = vec![];
-        for i in spl {
-            let (inst, count) = i.split_at(1);
-            steps.push((inst, count.parse::<i16>().unwrap_or(0)));
-        }
-        Pathing {
-            steps
-        }
-    }
-
-    fn walk_steps(&mut self) -> Gps {
-        let mut current = Gps::new();
-        for step in &self.steps{
-            current.mv(*step);
-        }
-        current
-    }
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Direction {
+    North = 0,
+    East = 1,
+    South = 2,
+    West = 3,
 }
 
-impl<'a> Gps<'a> {
-    fn new() -> Self {
-        Gps {
-            facing: "E", //default is facing east
-            x: 0,
-            y: 0,
-        }
-    }
-
-    fn mv(&mut self, inst: (&str, i16)) {
-        match inst.0 {
-            "N" => {
-                self.x += inst.1;
-            },
-            "S" => {
-                self.x -= inst.1;
-            },
-            "E" => {
-                self.y += inst.1;
-            },
-            "W" => {
-                self.y -= inst.1;
-            },
-            "L" => {
-                self.facing = rot(self.facing, 360i16-inst.1);
-            },
-            "R" => {
-                self.facing = rot(self.facing, inst.1);
-            },
-            "F" => {
-                self.mv((self.facing, inst.1));
-            },
-            _ => {
-                println!("Ignored bad instruction: {}, {}", inst.0, inst.1);
-            },
-        }
-    }
-
-    fn manhattan_distance(&self) {
-        println!("dist: {}", self.x.abs()+self.y.abs());
+impl Into<isize> for Direction {
+    fn into(self) -> isize {
+        self as isize
     }
 }
 
-fn rot(dir: &str, rotation: i16) -> &str {
-    let num_rotations = rotation / 90;
-    let mut current_dir = dir;
-    for _ in 0..num_rotations {
-        current_dir = match current_dir {
-            "N" => "E",
-            "E" => "S",
-            "S" => "W",
-            "W" => "N",
-            _ => "_",
+impl std::convert::TryFrom<isize> for Direction {
+    type Error = &'static str;
+    
+    fn try_from(val: isize) -> Result<Self, Self::Error> {
+        match val {
+            0 => Ok(Direction::North),
+            1 => Ok(Direction::East),
+            2 => Ok(Direction::South),
+            3 => Ok(Direction::West),
+            _ => Err("Direction: Out of bounds"),
         }
     }
-    current_dir
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct AngleDelta(isize);
+
+impl std::ops::Add<AngleDelta> for Direction {
+    type Output = Self;
+
+    fn add(self, rhs: AngleDelta) -> Self::Output {
+        use std::convert::TryInto;
+
+        let angle: isize = self.into();
+        (angle + rhs.0).rem_euclid(4).try_into().unwrap()
+    }
+}
+
+impl Direction {
+    fn gps(self) -> GPS {
+        match self {
+            Direction::North => GPS {x: 1, y: 0},
+            Direction::East => GPS {x: 0, y: 1},
+            Direction::South => GPS {x: -1, y: 0},
+            Direction::West => GPS {x: 0, y: -1},
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct GPS {
+    x: isize,
+    y: isize,
+}
+
+impl std::ops::Add for GPS {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl std::ops::Sub for GPS {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl std::ops::Mul<isize> for GPS {
+    type Output = Self;
+
+    fn mul(self, rhs: isize) -> Self::Output {
+        Self {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+
+impl GPS {
+    fn manhattan(&self) -> usize {
+        (self.x.abs() + self.y.abs()) as usize
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct ShipState {
+    pos: GPS,
+    dir: Direction,
+}
+
+impl std::ops::Add<Instruction> for ShipState {
+    type Output = Self;
+    fn add(self, rhs: Instruction) -> Self::Output {
+        match rhs {
+            Instruction::Move(dir, units) => Self {
+                pos: self.pos + dir.gps() * units,
+                ..self
+            },
+            Instruction::Rotate(delta) => Self {
+                dir: self.dir + delta,
+                ..self
+            },
+            Instruction::Forward(units) => Self {
+                pos: self.pos + self.dir.gps() * units,
+                ..self
+            },
+        }
+    }
 }
 
 fn main() {
+    let start = ShipState {
+        dir: Direction::East,
+        pos: GPS { x: 0, y: 0 },
+    };
     let filename = "input";
-    let contents = fs::read_to_string(filename).expect("failed to read");
-    let mut path = Pathing::new(&contents);
-    path.walk_steps().manhattan_distance();
+    let file_contents = fs::read_to_string(filename).expect("failed to read");
+    let end = parse_instructions(&file_contents).fold(start, |state, ins| state + ins);
+    dbg!(start, end, (end.pos - start.pos).manhattan());
+}
+
+#[test]
+fn gps_add() {
+    let a = GPS { x: 10, y: 9 };
+    let b = GPS { x: 7, y: 6 };
+    assert_eq!(a+b, GPS { x: 17, y: 15 });
+}
+
+#[test]
+fn gps_manhattan() {
+    let start = GPS { x: 0, y: 0 };
+    let end = GPS { x: 18, y: -5 };
+    assert_eq!((end - start).manhattan(), 23);
+}
+
+#[test]
+fn direction_try_from() {
+    use std::convert::TryFrom;
+
+    assert_eq!(
+        <Direction as TryFrom<isize>>::try_from(0).unwrap(),
+        Direction::North
+        );
+    assert_eq!(
+        <Direction as TryFrom<isize>>::try_from(2).unwrap(),
+        Direction::South
+        );
+    assert!(<Direction as TryFrom<isize>>::try_from(-1).is_err(),);
+    assert!(<Direction as TryFrom<isize>>::try_from(4).is_err(),);
+}
+
+#[test]
+fn test_direction_add() {
+    assert_eq!(Direction::East + AngleDelta(1), Direction::South);
+    assert_eq!(Direction::East + AngleDelta(-1), Direction::North);
+    assert_eq!(Direction::East + AngleDelta(4), Direction::East);
 }
