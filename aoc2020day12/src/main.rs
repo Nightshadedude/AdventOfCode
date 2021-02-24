@@ -70,10 +70,10 @@ impl std::ops::Add<AngleDelta> for Direction {
 impl Direction {
     fn gps(self) -> GPS {
         match self {
-            Direction::North => GPS {x: 1, y: 0},
-            Direction::East => GPS {x: 0, y: 1},
-            Direction::South => GPS {x: -1, y: 0},
-            Direction::West => GPS {x: 0, y: -1},
+            Direction::East => GPS { x: 1, y: 0 },
+            Direction::South => GPS { x: 0, y: -1 },
+            Direction::West => GPS { x: -1, y: 0 },
+            Direction::North => GPS { x: 0, y: 1 },
         }
     }
 }
@@ -121,12 +121,24 @@ impl GPS {
     fn manhattan(&self) -> usize {
         (self.x.abs() + self.y.abs()) as usize
     }
+
+    fn rotate(self, d: AngleDelta) -> Self {
+        let Self { x, y } = self;
+        match d.0.rem_euclid(4) {
+            0 => Self { x, y },
+            1 => Self { x: y, y: -x },
+            2 => Self { x: -x, y: -y },
+            3 => Self { x: -y, y: x },
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct ShipState {
     pos: GPS,
     dir: Direction,
+    waypoint: GPS,
 }
 
 impl std::ops::Add<Instruction> for ShipState {
@@ -134,15 +146,15 @@ impl std::ops::Add<Instruction> for ShipState {
     fn add(self, rhs: Instruction) -> Self::Output {
         match rhs {
             Instruction::Move(dir, units) => Self {
-                pos: self.pos + dir.gps() * units,
+                waypoint: self.waypoint + dir.gps() * units,
                 ..self
             },
             Instruction::Rotate(delta) => Self {
-                dir: self.dir + delta,
+                waypoint: self.waypoint.rotate(delta),
                 ..self
             },
             Instruction::Forward(units) => Self {
-                pos: self.pos + self.dir.gps() * units,
+                pos: self.pos + self.waypoint * units,
                 ..self
             },
         }
@@ -153,6 +165,7 @@ fn main() {
     let start = ShipState {
         dir: Direction::East,
         pos: GPS { x: 0, y: 0 },
+        waypoint: GPS { x: 10, y: 1 },
     };
     let filename = "input";
     let file_contents = fs::read_to_string(filename).expect("failed to read");
@@ -195,4 +208,16 @@ fn test_direction_add() {
     assert_eq!(Direction::East + AngleDelta(1), Direction::South);
     assert_eq!(Direction::East + AngleDelta(-1), Direction::North);
     assert_eq!(Direction::East + AngleDelta(4), Direction::East);
+}
+
+#[test]
+fn test_rotate() {
+    let v = GPS { x: 3, y: 1 };
+    assert_eq!(v.rotate(AngleDelta(0)), v);
+    assert_eq!(v.rotate(AngleDelta(4)), v);
+    assert_eq!(v.rotate(AngleDelta(-4)), v);
+
+    assert_eq!(v.rotate(AngleDelta(1)), GPS { x: 1, y: -3 });
+    assert_eq!(v.rotate(AngleDelta(2)), GPS { x: -3, y: -1 });
+    assert_eq!(v.rotate(AngleDelta(3)), GPS { x: -1, y: 3 });
 }
