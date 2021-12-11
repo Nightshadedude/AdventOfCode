@@ -13,3 +13,9 @@ Cargo.lock
 /*/target/*
 /target/*
 */target/*
+*/*/target/
+*/*/target/*
+*/*/*/target/
+*/*/*/target/*
+*/*/*/*/target/
+*/*/*/*/target/*
