@@ -15,5 +15,10 @@ fn main() {
         let temp: i32 = elf.split("\n").collect::<Vec<_>>().iter().map(|s| s.parse::<i32>().unwrap()).collect::<Vec<i32>>().iter().sum();
         calories.push(temp)
     }
-    print!("{:?}", calories.iter().max());
+    println!("{:?}", calories.iter().max());
+
+    calories.sort();
+    calories.reverse();
+
+    println!("{:?}", &calories[0..=2].iter().sum::<i32>());
 }
