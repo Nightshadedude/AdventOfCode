@@ -1,7 +1,5 @@
 use std::fs;
 
-
-
 fn read_file(name: &str) -> String {
     return fs::read_to_string(name)
     .expect("Should have been able to read the file");
