@@ -1,4 +1,5 @@
 use std::fs;
+use std::cmp;
 
 fn read_file(name: &str) -> String {
     return fs::read_to_string(name)
@@ -36,6 +37,17 @@ impl Pair{
             return 0;
         }
     }
+
+    fn contains_overlap(&self) -> i32 {
+        let low = cmp::max(self.first_low, self.second_low);
+        let high = cmp::min(self.first_high, self.second_high);
+        if low <= high {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
 }
 
 
@@ -43,4 +55,7 @@ fn main() {
     let input = read_file("input");
     let part_1 = input.lines().map(|s| Pair::new(s).fully_contains()).sum::<i32>();
     println!("{}", part_1);
+
+    let part_2 = input.lines().map(|s| Pair::new(s).contains_overlap()).sum::<i32>();
+    println!("{}", part_2);
 }
