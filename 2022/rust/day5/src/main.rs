@@ -79,6 +79,22 @@ impl Cargo {
         }
         println!("{:#?}", self.crates.crates);
     }
+
+    fn crane_magic_9001(&mut self){
+        let mut ret_vec: Vec<String> = vec![];
+        for m in self.moves.iter(){
+            let mut temp_vec: Vec<String> = vec![];
+            for _ in 0..m.num_moved{
+                 temp_vec.push(self.crates.crates[m.from_stack].pop().unwrap());
+            }
+            for _ in 0..temp_vec.len(){
+                self.crates.crates[m.to_stack].push(temp_vec.pop().unwrap());
+            }
+
+        }
+        println!("{:#?}", self.crates.crates);
+    }
+
 }
 
 fn main() {
@@ -86,5 +102,6 @@ fn main() {
     let input = input.split("\n\n").collect::<Vec<&str>>();
     let crates = Crates::new(input[0]);
     let moves = input[1].lines().map(|s| Move::new(s)).collect::<Vec<Move>>();
-    Cargo::new(crates, moves).crane_magic();
+    //Cargo::new(crates, moves).crane_magic();
+    Cargo::new(crates, moves).crane_magic_9001();
 }
