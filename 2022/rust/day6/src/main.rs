@@ -17,8 +17,7 @@ impl Comm {
         }
     }
 
-    fn report(&mut self) -> usize {
-        let window_size = 4;
+    fn report(&mut self, window_size: usize) -> usize {
         let mut chars = 0usize;
         for (ii,w) in self.characters.windows(window_size).enumerate() {
             let mut set = HashSet::new();
@@ -39,5 +38,5 @@ fn main() {
     input.trim();
     let split = input.chars().map(|c| c.to_string()).collect::<Vec<String>>();
     let mut comm = Comm::new(split);
-    println!("{}", comm.report());
+    println!("{}", comm.report(14));
 }
