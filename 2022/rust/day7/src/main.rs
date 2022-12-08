@@ -1,88 +1,58 @@
-//I failed miserably
-//using https://nickymeuleman.netlify.app/garden/aoc2022-day07 to move on to day 8 then will redo as time allows
-
 use std::fs;
-use std::path::PathBuf;
-use std::collections::HashMap;
+
+#[derive(Debug)]
+enum StructType {
+    Dir,
+    File
+}
+
+#[derive(Debug)]
+pub struct BlindTree {
+    name: String,
+    stype: StructType,
+    size: usize,
+    contents: Vec<BlindTree>,
+}
+
+impl BlindTree {
+    fn new(name: &str, st: StructType, size: usize) -> Self {
+        Self {
+            name: name.to_string(),
+            stype: st,
+            size: size,
+            contents: vec![],
+        }
+    }
+
+    fn add_contents(&mut self, ft: BlindTree) {
+        match self.stype {
+            StructType::File => panic!("Unable to add contents to File"),
+            StructType::Dir => self.contents.push(ft),
+        }
+    }
+
+}
+
+
+fn read_file(name: &str) -> String {
+    return fs::read_to_string(name)
+    .expect("Should have been able to read the file");
+}
+
+
 
 fn main() {
-    println!("{}", part_1());
-    println!("{}", part_2());
-}
-
-pub fn part_1() -> u32 {
-    let input = fs::read_to_string("input").unwrap();
-    let mut sizes = HashMap::new();
-    let mut affected = Vec::new();
-
-    for line in input.lines() {
-        if line.starts_with("$ ls") || line.starts_with("dir") {
-            continue;
-        }
-
-        let parts: Vec<_> = line.split_whitespace().collect();
-        match parts[..] {
-            ["$", "cd", ".."] => {
-                affected.pop();
-            }
-            ["$", "cd", name] => {
-                affected.push(name);
-            }
-            [size, _name] => {
-                let size: u32 = size.parse().unwrap();
-                for idx in 0..affected.len() {
-                    let path = PathBuf::from_iter(&affected[..=idx]);
-                    *sizes.entry(path).or_insert(0) += size;
-                }
-            }
-            _ => {}
-        };
-    }
-
-    sizes
-        .into_values()
-        .filter(|size| *size <= 100_000)
-        .sum()
-}
-
-pub fn part_2() -> u32 {
-    let input = fs::read_to_string("input").unwrap();
-
-    let mut sizes = HashMap::new();
-    let mut affected = Vec::new();
-
-    for line in input.lines() {
-        if line.starts_with("$ ls") || line.starts_with("dir") {
-            continue;
-        }
-
-        let parts: Vec<_> = line.split_whitespace().collect();
-        match parts[..] {
-            ["$", "cd", ".."] => {
-                affected.pop();
-            }
-            ["$", "cd", name] => {
-                affected.push(name);
-            }
-            [size, _name] => {
-                let size: u32 = size.parse().unwrap();
-                for idx in 0..affected.len() {
-                    let path = PathBuf::from_iter(&affected[..=idx]);
-                    *sizes.entry(path).or_insert(0) += size;
-                }
-            }
-            _ => {}
-        };
-    }
-
-    let disk = 70_000_000;
-    let needed = 30_000_000;
-    let root = sizes.get(&PathBuf::from("/")).unwrap();
-    let available = disk - root;
-
-    sizes
-        .into_values()
-        .filter(|size| available + size >= needed)
-        .min()
-        .unwrap()
+    let mut input = read_file("input");
+    let mut root = BlindTree::new("root", StructType::Dir, 0);
+    println!("{:?}", &root);
+    let child = BlindTree::new("child", StructType::Dir, 0);
+    let mut child2 = BlindTree::new("child2", StructType::Dir, 0);
+    let child3 = BlindTree::new("child3", StructType::Dir, 0);
+    root.add_contents(child);
+    child2.add_contents(child3);
+    println!("{:?}", &child2);
+    root.add_contents(child2);
+    println!("{:?}", &root);
+    // let inputs = input.split("\n$").collect::<Vec<_>>().iter().map(|s| parse_input(s)).collect::<Vec<_>>();
+    // println!("{:?}", inputs); 
 }
