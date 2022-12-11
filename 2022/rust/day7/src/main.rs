@@ -6,6 +6,27 @@ enum StructType {
     File
 }
 
+struct ParseHelper {
+    line: usize,
+    level: usize,
+    s: String,
+}
+
+impl ParseHelper {
+    fn new(line: usize, level: usize, s: &str) {
+        
+    }
+
+    fn feeder(s: &str) {
+        let mut level = 0;
+        let v = s.split("\n").collect::<Vec<_>>();
+        let mut vph = vec![];
+        for (ii,l) in v.iter().enumerate() {
+            
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct BlindTree {
     name: String,
@@ -37,6 +58,7 @@ impl BlindTree {
 fn read_file(name: &str) -> String {
     return fs::read_to_string(name)
     .expect("Should have been able to read the file");
+
 }
 
 
