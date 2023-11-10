@@ -30,7 +30,7 @@ impl Program {
                 _ => panic!("failed to parse: {}", ii),
             }
         }
-        println!("{:?}", instructions);
+        // println!("{:?}", instructions);
         instructions
     }
 
@@ -53,16 +53,22 @@ impl Program {
                     self.queue.push_back(*val);
                 },
                 Instruction::Noop => {self.queue.push_back(0isize);},
-                _ => panic!("Unsupported instruction: {:?}", ii),
+                // _ => panic!("Unsupported instruction: {:?}", ii),
             }
         }
-        println!("{:?}", self.queue);
+        // println!("{:?}", self.queue);
         while self.queue.len() > 0 {
+            if self.cycles == self.register {
+                print!("#");
+            } else {
+                print!(".");
+            }
+            if (self.cycles+1) % 40 == 0 {println!("");}
             self.cycles = self.cycles + 1;
             let num = self.queue.pop_front().unwrap();
             if (self.cycles+20)%40 == 0 {
-                println!("reg: {} || cyc: {} || sig: {}", self.register, self.cycles, self.register * self.cycles);
-                println!("", );
+                // println!("reg: {} || cyc: {} || sig: {}", self.register, self.cycles, self.register * self.cycles);
+                // println!("", );
                 self.sig_str = self.sig_str + (self.register * self.cycles); 
             }
             self.register =  self.register + num;
