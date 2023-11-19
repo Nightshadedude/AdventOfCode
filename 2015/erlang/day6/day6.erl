@@ -9,7 +9,9 @@ part1(FileName) ->
 
 part2(FileName) ->
     L = parse(readlines(FileName)),
-    L.
+    Arr = make_2d_arr(1000,1000),
+    Final = flipper_2(L, Arr),
+    Final.
     
 readlines(FileName) ->
     {ok, Device} = file:open(FileName, [read]),
@@ -77,10 +79,45 @@ toggle(toggle, {LX,LY,LY_Base,RX,RY}, Arr) ->
         LX < RX -> toggle(toggle, {LX+1,LY,LY_Base,RX,RY}, New_Arr);
         true -> New_Arr
     end;
-
 toggle(_, _, Arr) ->
     erlang:display("dafuq?"),
     Arr.
+
+
+
+
+
+flipper_2([], Arr) ->
+    lists:sum(lists:flatten([array:to_list(R) || R <- array:to_list(Arr)]));
+flipper_2([LH|LT], Arr) -> 
+    erlang:display(LH),
+    [SH|ST] = string:split(LH, " "),
+    if
+        SH == "turn" ->
+            [TH|TT] = string:split(ST, " "),
+            if 
+                TH == "on" -> flipper_2(LT, toggle_2(on, tail_to_coord(TT), Arr));
+                TH == "off" -> flipper_2(LT, toggle_2(off, tail_to_coord(TT), Arr))
+            end;
+        SH == "toggle" -> flipper_2(LT, toggle_2(toggle, tail_to_coord(ST), Arr));
+        true -> exit
+    end.
+
+toggle_2(Toggle_Type, {LX,LY,LY_Base,RX,RY}, Arr) ->
+    Element = get_element(LX, LY, Arr),
+    case Toggle_Type of
+        on -> New_Arr = set_element(LX, LY, Arr, Element + 1);
+        toggle -> New_Arr = set_element(LX, LY, Arr, Element + 2);
+        off -> New_Arr = set_element(LX, LY, Arr, lists:max([Element - 1,0]))
+    end,
+
+    if 
+        (LY == RY) and (LX < RX) -> toggle_2(Toggle_Type, {LX+1,LY_Base,LY_Base,RX,RY}, New_Arr);
+        LY < RY -> toggle_2(Toggle_Type, {LX,LY+1,LY_Base,RX,RY}, New_Arr);
+        LX < RX -> toggle_2(Toggle_Type, {LX+1,LY,LY_Base,RX,RY}, New_Arr);
+        true -> New_Arr
+    end.
+
     
 tail_to_coord(TT) ->
     [L|R] = string:split(TT, " through "),
