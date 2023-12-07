@@ -2,96 +2,188 @@
 -export([part1/1, part2/1,test/0]).
 
 test() ->
-    L = <<"467..114..\n...*......\n..35..633.\n......#...\n617*......\n.....+.58.\n..592.....\n......755.\n...$.*....\n.664.598..">>,
-    {Blob, Matches, Size} = bin_match(L),
-    %erlang:display({Blob, Matches, Size}),
-    Found = look_around(Blob, Matches, Size, []),
-    Nums = extract_numbers(Blob, 0, [], []),
-    Adj = [Num || {Num, PL} <- Nums, length(Found)>length(lists:subtract(Found,PL))],
-    lists:sum(Adj).
+    Data = <<"467..114..\n...*......\n..35..633.\n......#...\n617*......\n.....+.58.\n..592.....\n......755.\n...$.*....\n.664.598..\n">>,
+    {Nums, Chars, Len} = walk(Data, 0, [], [], []),
+    Offset = trunc(math:sqrt(Len)),
+    Reach_Chars = build_char_reach(Chars, Offset, []),
+    erlang:display({part1, lists:sum([Num || {Num, Pos} <- Nums, is_adjacent(Reach_Chars, Pos)])}),
+    Stars = [ {Char, Reach} || {Char, Reach} <- Reach_Chars, Char == star],
+    erlang:display({part1,count_adjacent(Stars, Nums, 0)}).
 
 part1(FileName) ->
-    L = readlines(FileName),
-    {Blob, Matches, Size} = bin_match(L),
-    %erlang:display({Blob, Matches, Size}),
-    Found = look_around(Blob, Matches, Size, []),
-    % Nums = extract_numbers(Blob, 0, [], []),
-    % Adj = [Num || {Num, PL} <- Nums, length(Found)>length(lists:subtract(Found,PL))],
-    % lists:sum(Adj).
-    Found.
+    Data = readlines(FileName),
+    {Nums, Chars, Len} = walk(Data, 0, [], [], []),
+    Offset = trunc(math:sqrt(Len)),
+    Reach_Chars = build_char_reach(Chars, Offset, []),
+    lists:sum([Num || {Num, Pos} <- Nums, {true, Num} == is_adjacent(Reach_Chars, Pos)]).
 
 part2(FileName) ->
-    L = readlines(FileName),
-    L.
+    Data = readlines(FileName),
+    {Nums, Chars, Len} = walk(Data, 0, [], [], []),
+    Offset = trunc(math:sqrt(Len)),
+    Reach_Chars = build_char_reach(Chars, Offset, []),
+    Stars = [ {Char, Reach} || {Char, Reach} <- Reach_Chars, Char == star],
+    count_adjacent(Stars, Nums, 0).
 
 readlines(FileName) ->
     {ok, Data} = file:read_file(FileName),
     Data.
 
-bin_match(Data) ->
-    Blob = binary:replace(Data, <<"\n">>, <<"">>, [global]),
-    {Blob, binary:matches(Blob, [<<"#">>,<<"&">>,<<"+">>,<<"%">>,<<"$">>,<<"*">>,<<"/">>,<<"-">>,<<"=">>,<<"@">>], []), trunc(math:sqrt(byte_size(Blob)))}.
+walk(<<>>, Pos, _, Nums, Chars) ->
+    {lists:flatten(Nums), lists:flatten(Chars), Pos};
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == 10, Num_Acc == [] -> % <<"\n">> would not work
+    % erlang:display({newline, Pos}),
+    walk(T, Pos, [], Nums, Chars);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == 10 -> % <<"\n">> would not work
+    % erlang:display({newline, Pos}),
+    Num = build_num(Num_Acc),
+    walk(T, Pos, [], [Num|[Nums]], Chars);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H >= 48, H =< 57 ->
+    walk(T, Pos+1, [{H-48,Pos}|[Num_Acc]], Nums, Chars);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $#, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{hash,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $# ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{hash,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $&, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{amper,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $& ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{amper,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $+, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{plus,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $+ ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{plus,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $%, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{pct,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $% ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{pct,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $$, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{dollar,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $$ ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{dollar,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $*, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{star,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $* ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{star,Pos}|[Chars]]);
+    
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $/, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{slash,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $/ ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{slash,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $-, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{dash,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $- ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{dash,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $=, Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{eq,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $= ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{eq,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $@ , Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, [{at,Pos}|[Chars]]);
+
+walk(<<H,T/binary>>, Pos, Num_Acc, Nums, Chars) when H == $@ ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], [{at,Pos}|[Chars]]);
+
+walk(<<_,T/binary>>, Pos, Num_Acc, Nums, Chars) when Num_Acc == [] ->
+    walk(T, Pos+1, [], Nums, Chars);
+
+walk(<<_,T/binary>>, Pos, Num_Acc, Nums, Chars) ->
+    Num = build_num(Num_Acc),
+    walk(T, Pos+1, [], [Num|[Nums]], Chars).
+    
 
 
-look_around(_, [], _, Found) ->
-    erlang:display({found, Found}),
-    lists:uniq(lists:flatten(Found));
-
-look_around(Blob, [H|T], Size, Found) ->
-    {Loc, _} = H,
-    % No symbols on edges, so no need to check % (-1,-1),(-1,0),(-1,1) % (0, -1),( Loc),( 0,1) % (1, -1),( 1,0),( 1,1)
-    Dirs = [{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}],
-    % erlang:display({loc, Loc, dirs, Dirs}),
-    New_Found = lists:flatten(check_for_num(Dirs, Blob, Loc, Size, Found)),
-    look_around(Blob, T, Size, [New_Found|[Found]]).
-
-check_for_num([], _, _, _, Found) ->
-    Found;
-
-check_for_num([H|T], Blob, Loc, Size, Found) ->
-    % erlang:display(H),
-    {Row_Offset, Col_Offset} = H,
-    Check_Loc = Loc + (Row_Offset * Size) + Col_Offset,
-    Char = binary:at(Blob, Check_Loc),
-    if
-        Char > 47,Char < 58 -> 
-            % erlang:display({"Found number at", Check_Loc, "Char", Char}),
-            check_for_num(T, Blob, Loc, Size, [Check_Loc|[Found]]);
-        true -> check_for_num(T, Blob, Loc, Size, Found)
+build_num(Num_Acc) ->
+    Flattened = lists:flatten(Num_Acc),
+    % erlang:display({flattened, Flattened}),
+    case length(Flattened) of
+        1 -> 
+            [{C1, P1}] = Flattened,
+            Num = C1,
+            {Num, [P1]};
+        2 ->
+            [{C1, P1}, {C2, P2}] = Flattened,
+            Num = C1 + 10*C2,
+            {Num, [P1, P2]};
+        3 ->
+            [{C1, P1}, {C2, P2}, {C3, P3}] = Flattened,
+            Num = C1 + 10*C2 + 100*C3,
+            {Num, [P1, P2, P3]};
+        true -> erlang:display({accumulator_error, Num_Acc})
     end.
 
-extract_numbers(Blob, Pos, _, Nums) when Pos >= byte_size(Blob) ->
-    erlang:display({extract, lists:flatten(Nums)}),
-    lists:flatten(Nums);
+build_char_reach([], _, Char_Set) ->
+    lists:flatten(Char_Set);
 
-extract_numbers(Blob, Pos, Acc, Nums) when Pos < byte_size(Blob) ->
-    % erlang:display({extract, acc, lists:flatten(Acc), length(lists:flatten(Acc))}),
-    Char = binary:at(Blob, Pos),
-    if
-        Char > 47,Char < 58 -> extract_numbers(Blob, Pos+1, [{Char,Pos}|[Acc]], Nums);
-        true ->
-            Flattened = lists:flatten(Acc),
-            case length(Flattened) of
-                0 ->
-                    extract_numbers(Blob, Pos+1, Acc, Nums);
-                1 -> 
-                    [{C1, P1}] = Flattened,
-                    Num = C1-48,
-                    extract_numbers(Blob, Pos+1, [], [{Num, [P1]}|[Nums]]);
-                2 ->
-                    [{C1, P1}, {C2, P2}] = Flattened,
-                    Num = C1-48 + 10*(C2-48),
-                    extract_numbers(Blob, Pos+1, [], [{Num, [P1, P2]}|[Nums]]);
-                3 ->
-                    [{C1, P1}, {C2, P2}, {C3, P3}] = Flattened,
-                    Num = C1-48 + 10*(C2-48) + 100*(C3-48),
-                    extract_numbers(Blob, Pos+1, [], [{Num, [P1, P2, P3]}|[Nums]]);
-                true -> erlang:display({accumulator_error, Acc})
-            end
+build_char_reach([H|T], Offset, Char_Set) ->
+    {Char, Pos} = H,
+    Dirs = [{-1,-1},{-1,0},{-1,1},{0,-1},{0,0},{0,1},{1,-1},{1,0},{1,1}],
+    Reach = [ Pos + (R*Offset) + C || {R,C} <- Dirs],
+    build_char_reach(T, Offset, [{Char, Reach}|[Char_Set]]).
+
+is_adjacent([], _) ->
+    false;
+
+is_adjacent([H|T], Pos) ->
+    {_, Reach} = H,
+    % erlang:display({num, Num, pos,Pos, char, Char, reach,Reach}),
+    Intersect =  ([] /= [X || X <- Pos, Y <- Reach, X == Y]),
+    % erlang:display({inter, Intersect}),
+    case Intersect of
+        true -> true;
+        false -> is_adjacent(T, Pos)
     end.
 
-%% char list [<<"#">>,<<"&">>,<<"+">>,<<"%">>,<<"$">>,<<"*">>,<<"/">>,<<"-">>,<<"=">>,<<"@">>]
-% binary:matches(Blob, [<<"#">>,<<"&">>,<<"+">>,<<"%">>,<<"$">>,<<"*">>,<<"/">>,<<"-">>,<<"=">>,<<"@">>], [])
+is_adj_p2([], _, Adj_List) ->
+    Flattened = lists:flatten(Adj_List),
+    if
+        length(Flattened) == 2 -> lists:nth(1, Flattened) * lists:nth(2, Flattened);
+        true -> 0
+    end;
 
+is_adj_p2([H|T], Reach, Adj_List) ->
+    {Num, Pos} = H,
+    Intersect =  ([] /= [X || X <- Pos, Y <- Reach, X == Y]),
+    case Intersect of
+        true -> 
+            is_adj_p2(T, Reach, [Num|[Adj_List]]);
+        false -> is_adj_p2(T, Reach, Adj_List)
+    end.
 
+count_adjacent([], _, Num_Acc) ->
+    Num_Acc;
 
+count_adjacent([H|T], Nums, Num_Acc) ->
+    {_, Reach} = H,
+    Num = is_adj_p2(Nums, Reach, []),
+    count_adjacent(T, Nums, Num_Acc + Num).
