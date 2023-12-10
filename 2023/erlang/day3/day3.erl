@@ -8,7 +8,7 @@ test() ->
     Reach_Chars = build_char_reach(Chars, Offset, []),
     erlang:display({part1, lists:sum([Num || {Num, Pos} <- Nums, is_adjacent(Reach_Chars, Pos)])}),
     Stars = [ {Char, Reach} || {Char, Reach} <- Reach_Chars, Char == star],
-    erlang:display({part1,count_adjacent(Stars, Nums, 0)}).
+    erlang:display({part2,count_adjacent(Stars, Nums, 0)}).
 
 part1(FileName) ->
     Data = readlines(FileName),
