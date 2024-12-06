@@ -1,5 +1,4 @@
 use std::fs;
-use std::collections::HashMap;
 
 fn read_file(name: &str) -> String {
     return fs::read_to_string(name)
@@ -44,8 +43,8 @@ fn check_around_part1(char_grid: &Vec<Vec<char>>, h: usize, w: usize, ii: usize,
     for dir in dirs {
         let mut found = 0;
         for dist in 1isize..=3isize {
-            let i = (ii as isize +(dir.0*dist));
-            let j = (jj as isize+(dir.1*dist));
+            let i = ii as isize +(dir.0*dist);
+            let j = jj as isize+(dir.1*dist);
             if i < 0 || i >= h as isize || j < 0 || j >= w as isize {()}
             else if char_grid[i as usize][j as usize] == xmas[dist as usize] {
                 found += 1;
@@ -73,31 +72,27 @@ fn check_around_part2(char_grid: &Vec<Vec<char>>, h: usize, w: usize, ii: usize,
     //up / down
     let mut count = 0;
     //left/right
-    let rotation: Vec<Vec<(isize,isize)>> = vec![
-        vec![(-1,-1), //ul
+    let dirs: Vec<(isize,isize)> = vec![
+        (-1,-1), //ul
         (-1,1), //ur
         (1,-1), //dl
-        (1,1)], //dr
-        vec![(-1,-1), //ul
-        (1,-1), //dl
-        (-1,1), //ur
-        (1,1)], //dr
+        (1,1), //dr
     ];
-    for rot in rotation {
-        let mut found = vec![];
-        for dir in rot {
-            let i = ii as isize + dir.0;
-            let j = jj as isize + dir.1;
-            if i < 0 || i >= h as isize || j < 0 || j >= w as isize {()}
-            else if char_grid[i as usize][j as usize] == 'S' || char_grid[i as usize][j as usize] == 'M' {
-                found.push(char_grid[i as usize][j as usize])
-            }
+    let mut found = vec![];
+    for dir in dirs {
+        let i = ii as isize + dir.0;
+        let j = jj as isize + dir.1;
+        if i < 0 || i >= h as isize || j < 0 || j >= w as isize {()}
+        else if char_grid[i as usize][j as usize] == 'S' || char_grid[i as usize][j as usize] == 'M' {
+            found.push(char_grid[i as usize][j as usize])
         }
-        match &found[..] {
-            ['M','M','S','S'] => count += 1,
-            ['S','S','M','M'] => count += 1,
-            _ => (),
-        }
+    }
+    match &found[..] {
+        ['M','M','S','S'] => count += 1,
+        ['S','S','M','M'] => count += 1,
+        ['M','S','M','S'] => count += 1,
+        ['S','M','S','M'] => count += 1,
+        _ => (),
     }
     count
 }
